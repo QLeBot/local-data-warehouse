@@ -1,0 +1,38 @@
+version: 2
+
+# Silver layer models contain cleaned, validated, and enriched data.
+# These models transform raw/bronze data by:
+# - Applying data quality checks and validations
+# - Standardizing formats and data types
+# - Deduplicating records
+# - Enriching with additional context
+# - Creating conformed dimensions
+#
+# Silver models serve as the foundation for gold layer analytics.
+
+models:
+  # Example model structure (uncomment and modify as you add models):
+  # - name: cleaned_customers
+  #   description: "Cleaned and validated customer data from bronze layer"
+  #   config:
+  #     materialized: table
+  #     tags:
+  #       - silver
+  #       - cleaned
+  #       - validated
+  #   columns:
+  #     - name: customer_id
+  #       description: "Unique identifier for the customer"
+  #       tests:
+  #         - unique
+  #         - not_null
+  #     - name: email
+  #       description: "Customer email address"
+  #       tests:
+  #         - not_null
+  #     - name: created_at
+  #       description: "Timestamp when the customer record was created"
+  #       tests:
+  #         - not_null
+  #     - name: updated_at
+  #       description: "Timestamp when the customer record was last updated"

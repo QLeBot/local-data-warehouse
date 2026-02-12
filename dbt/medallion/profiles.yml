@@ -1,0 +1,8 @@
+medallion:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "C:/Users/qlecomte/Desktop/Code Perso/local-data-warehouse/warehouse/local.duckdb"
+      threads: 4
+      

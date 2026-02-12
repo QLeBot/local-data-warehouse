@@ -1,0 +1,45 @@
+version: 2
+
+# Gold layer models contain business-ready, aggregated, and transformed data.
+# These models provide:
+# - Business metrics and KPIs
+# - Aggregated facts and dimensions
+# - Final data marts for reporting and analytics
+# - Cross-functional business views
+#
+# Gold models are optimized for end-user consumption and analytics tools.
+
+models:
+  # Example model structure (uncomment and modify as you add models):
+  # - name: customer_metrics
+  #   description: "Aggregated customer metrics and KPIs for business reporting"
+  #   config:
+  #     materialized: table
+  #     tags:
+  #       - gold
+  #       - marts
+  #       - business_ready
+  #   columns:
+  #     - name: customer_id
+  #       description: "Unique identifier for the customer"
+  #       tests:
+  #         - unique
+  #         - not_null
+  #     - name: total_orders
+  #       description: "Total number of orders placed by the customer"
+  #       tests:
+  #         - not_null
+  #     - name: total_revenue
+  #       description: "Total revenue generated from customer orders"
+  #       tests:
+  #         - not_null
+  #     - name: average_order_value
+  #       description: "Average value per order"
+  #       tests:
+  #         - not_null
+  #     - name: last_order_date
+  #       description: "Date of the most recent order"
+  #     - name: customer_lifetime_value
+  #       description: "Calculated customer lifetime value"
+  #       tests:
+  #         - not_null
