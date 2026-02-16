@@ -3,3 +3,7 @@ duckdb
 dbt-duckdb
 pandas
 polars
+sqlalchemy
+pyodbc
+faker
+streamlit
