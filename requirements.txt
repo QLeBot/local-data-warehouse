@@ -7,3 +7,4 @@ sqlalchemy
 pyodbc
 faker
 streamlit
+pyarrow

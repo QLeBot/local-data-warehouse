@@ -3,7 +3,9 @@ Data generator for sites with coordinates, country information, and equipment ID
 """
 
 import random
-from typing import List, Optional, Dict
+from pathlib import Path
+from typing import List, Optional, Dict, Union
+from datetime import datetime
 import logging
 
 import pandas as pd
@@ -229,6 +231,85 @@ def generate_sites(
     return df
 
 
+def export_sites_to_parquet(
+    df: pd.DataFrame,
+    output_path: Optional[Union[str, Path]] = None,
+    output_dir: Optional[Union[str, Path]] = None,
+    filename: Optional[str] = None,
+    partition_by: Optional[str] = None
+) -> Path:
+    """
+    Export generated sites DataFrame to Parquet format for DuckDB ingestion.
+    
+    Args:
+        df: DataFrame with sites data to export.
+        output_path: Full path to output parquet file. If None, uses output_dir and filename.
+        output_dir: Directory to save the parquet file. Defaults to data/raw relative to project root.
+        filename: Name of the parquet file (without extension). If None, uses timestamp-based name.
+        partition_by: Optional column name to partition the parquet file by (e.g., 'country').
+    
+    Returns:
+        Path to the saved parquet file.
+    """
+    if output_path is None:
+        # Determine output directory
+        if output_dir is None:
+            # Default to data/raw relative to project root
+            project_root = Path(__file__).parent.parent.parent
+            output_dir = project_root / "data" / "raw"
+        else:
+            output_dir = Path(output_dir)
+        
+        # Create directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate filename if not provided
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"sites_{timestamp}.parquet"
+        
+        # Ensure .parquet extension
+        if not filename.endswith('.parquet'):
+            filename = f"{filename}.parquet"
+        
+        output_path = output_dir / filename
+    else:
+        output_path = Path(output_path)
+        # Create parent directory if it doesn't exist
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Ensure data types are compatible with DuckDB
+    # Convert any object columns that should be strings (work on a copy)
+    df_export = df.copy()
+    for col in df_export.columns:
+        if df_export[col].dtype == 'object':
+            # Check if it's actually string data
+            if df_export[col].apply(lambda x: isinstance(x, str) if pd.notna(x) else True).all():
+                df_export[col] = df_export[col].astype('string')
+    
+    # Export to parquet
+    if partition_by and partition_by in df_export.columns:
+        # Partitioned parquet (creates a directory with multiple files)
+        df_export.to_parquet(
+            output_path,
+            partition_cols=[partition_by],
+            index=False,
+            engine='pyarrow'
+        )
+        logger.info(f"Exported {len(df_export)} sites to partitioned parquet: {output_path}")
+    else:
+        # Single parquet file
+        df_export.to_parquet(
+            output_path,
+            index=False,
+            engine='pyarrow'
+        )
+        file_size_mb = output_path.stat().st_size / (1024 * 1024)
+        logger.info(f"Exported {len(df_export)} sites to parquet: {output_path} ({file_size_mb:.2f} MB)")
+    
+    return output_path
+
+
 if __name__ == "__main__":
     # Example usage
     import sys
@@ -252,8 +333,13 @@ if __name__ == "__main__":
     print(f"\nDataFrame info:")
     print(df.info())
     
-    # Save to CSV (optional)
-    # output_path = Path(__file__).parent.parent / "raw" / "sites.csv"
-    # output_path.parent.mkdir(parents=True, exist_ok=True)
-    # df.to_csv(output_path, index=False)
-    # print(f"\nSaved to {output_path}")
+    # Export to Parquet for DuckDB ingestion
+    output_path = export_sites_to_parquet(
+        df,
+        filename=f"sites_{num_sites}.parquet"
+    )
+    print(f"\n✅ Exported to: {output_path}")
+    print(f"   File size: {output_path.stat().st_size / (1024 * 1024):.2f} MB")
+    print(f"\n   To load into DuckDB, use:")
+    print(f"   from ingest.load import load_data")
+    print(f"   load_data('{output_path}', table_name='sites', schema='raw')")
