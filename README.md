@@ -25,8 +25,9 @@ Local-first **medallion architecture** (raw → bronze → silver → gold) usin
 - `docs/INTEGRATIONS.md`: Snowflake MCP, CLI, Cortex integration notes and extension ideas
 - `docs/EXTENSIONS_CHECKLIST.md`: Checklist of optional extensions (integrations, tests, gold export, etc.)
 - `docs/DBT_META_AND_EXPOSURES.md`: How meta and exposures work and how they’re used for dbt docs lineage
+- `docs/DB_ARCHITECTURE_FROM_DBT.md`: Open-source local tools (e.g. **dbterd**) to generate DB architecture / ERD from dbt models
 - `bi/`: Power BI (.pbix) and Metabase – local BI testing against gold layer (see `bi/README.md`)
-- `Makefile`: shortcuts for load-bronze, dbt-build, schema-export, schema-validate
+- `Makefile`: shortcuts for load-bronze, dbt-build, schema-export, schema-validate, docs-serve, erd
 - `.env.example`: template for Snowflake and optional paths (copy to `.env`)
 - `dashboard/dashboard_sites.py`: Streamlit app to view sites on a map
 - `warehouse/local.duckdb`: local DuckDB database file (created/used by the project)
@@ -209,6 +210,8 @@ Then open http://localhost:8080 (or the URL dbt prints). You get:
 - **Exposures** – Downstream consumers (Power BI, Metabase, etc.) defined in `dbt/medallion/models/exposures.yml` with `depends_on` refs to gold models; they appear as nodes at the end of the DAG so you can see impact (e.g. “this model feeds these dashboards”).
 
 See **`docs/DBT_META_AND_EXPOSURES.md`** for how to use meta and exposures and how they’re integrated in this project.
+
+**DB architecture (ERD) from dbt:** To generate an entity-relationship diagram from your dbt project (no manual drawing), use **dbterd** (or alternatives like dbt-diagrams). Run `make erd` after `dbt compile` or `dbt build`; output goes to `docs/erd.mmd` (Mermaid). See **`docs/DB_ARCHITECTURE_FROM_DBT.md`** for options (dbterd, dbt-diagrams, DBML) and usage.
 
 ### Power BI (.pbix) and Metabase for gold-layer testing
 

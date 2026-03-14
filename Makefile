@@ -6,7 +6,8 @@ WAREHOUSE_PATH ?= warehouse/local.duckdb
 DBT_PROJECT ?= dbt/medallion
 SCHEMA_YML ?= docs/warehouse_schema.yml
 
-.PHONY: help load-bronze dbt-build schema-export schema-validate docs-serve
+ERD_OUTPUT ?= docs/erd.mmd
+.PHONY: help load-bronze dbt-build schema-export schema-validate docs-serve erd
 
 help:
 	@echo "Targets:"
@@ -14,7 +15,8 @@ help:
 	@echo "  dbt-build       Run dbt build in $(DBT_PROJECT)"
 	@echo "  schema-export   Export warehouse schema to $(SCHEMA_YML)"
 	@echo "  schema-validate Validate warehouse against $(SCHEMA_YML)"
-	@echo "  docs-serve      Generate dbt docs and serve (run from dbt project manually if needed)"
+	@echo "  docs-serve      Generate dbt docs and serve"
+	@echo "  erd             Generate DB architecture (ERD) from dbt artifacts to $(ERD_OUTPUT); requires manifest in $(DBT_PROJECT)/target (run dbt compile or dbt build first)"
 
 load-bronze:
 	python -c "from ingest.load import load_data; load_data('data/bronze', schema='bronze', pattern='*.csv.gz')"
@@ -30,3 +32,8 @@ schema-validate:
 
 docs-serve:
 	cd $(DBT_PROJECT) && dbt docs generate --profiles-dir . && dbt docs serve --profiles-dir .
+
+erd:
+	@test -f $(DBT_PROJECT)/target/manifest.json || (echo "Run 'make dbt-build' or 'cd $(DBT_PROJECT) && dbt compile --profiles-dir .' first." && exit 1)
+	dbterd run --artifacts-dir $(DBT_PROJECT)/target --target mermaid --output $(ERD_OUTPUT)
+	@echo "ERD written to $(ERD_OUTPUT). View in VS Code (Mermaid), GitHub, or render with mermaid-cli."

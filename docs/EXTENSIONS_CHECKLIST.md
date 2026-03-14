@@ -18,6 +18,7 @@ Track optional improvements and integrations. Check off as you implement.
 - [x] **dbt docs** – Generate and serve dbt docs for lineage; document in README (see “dbt docs (lineage)” section).
 - [x] **Meta** – Use `meta` on models/sources for owner, maturity, PII flags; visible in dbt docs (see `docs/DBT_META_AND_EXPOSURES.md`).
 - [x] **Exposures** – Define Power BI / Metabase (and other BI) as exposures for downstream lineage (see `docs/DBT_META_AND_EXPOSURES.md`).
+- [x] **DB architecture from dbt** – Generate ERD from dbt artifacts with **dbterd** (`make erd` → `docs/erd.mmd`); alternatives in `docs/DB_ARCHITECTURE_FROM_DBT.md` (dbt-diagrams, erdgen, dbt-dbml-erd).
 
 ## Testing & quality
 

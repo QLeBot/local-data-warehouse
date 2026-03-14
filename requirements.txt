@@ -10,3 +10,4 @@ streamlit
 pyarrow
 snowflake-connector-python
 pyyaml
+dbterd
