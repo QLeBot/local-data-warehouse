@@ -8,8 +8,17 @@ version: 2
 # - Cross-functional business views
 #
 # Gold models are optimized for end-user consumption and analytics tools.
+# Use 'meta' for owner, maturity, PII flags; it appears in dbt docs. See docs/DBT_META_AND_EXPOSURES.md.
 
 models:
+  - name: placeholder
+    description: "Placeholder gold model for a valid DAG; replace with real gold models."
+    meta:
+      owner: analytics
+      maturity: low
+      contains_pii: false
+    config:
+      tags: [gold]
   # Example model structure (uncomment and modify as you add models):
   # - name: customer_metrics
   #   description: "Aggregated customer metrics and KPIs for business reporting"

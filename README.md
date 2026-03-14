@@ -22,7 +22,12 @@ Local-first **medallion architecture** (raw → bronze → silver → gold) usin
 - `dbt/medallion/`: dbt project (profile already points to `warehouse/local.duckdb`)
 - `scripts/warehouse_schema.py`: export or validate warehouse schema (database architecture model)
 - `docs/warehouse_schema.yml`: committed schema snapshot (after `warehouse_schema export`) for validation
+- `docs/INTEGRATIONS.md`: Snowflake MCP, CLI, Cortex integration notes and extension ideas
+- `docs/EXTENSIONS_CHECKLIST.md`: Checklist of optional extensions (integrations, tests, gold export, etc.)
+- `docs/DBT_META_AND_EXPOSURES.md`: How meta and exposures work and how they’re used for dbt docs lineage
 - `bi/`: Power BI (.pbix) and Metabase – local BI testing against gold layer (see `bi/README.md`)
+- `Makefile`: shortcuts for load-bronze, dbt-build, schema-export, schema-validate
+- `.env.example`: template for Snowflake and optional paths (copy to `.env`)
 - `dashboard/dashboard_sites.py`: Streamlit app to view sites on a map
 - `warehouse/local.duckdb`: local DuckDB database file (created/used by the project)
 
@@ -188,6 +193,23 @@ python scripts/warehouse_schema.py validate
 
 If the DB schema has drifted (missing/extra tables or columns), the command exits with an error. Use `--db` and `--out` / `--schema` to point at another DuckDB file or YAML path.
 
+### dbt docs (lineage, meta, exposures)
+
+Generate and serve the **dbt docs** site for lineage and documentation:
+
+```bash
+make docs-serve
+# or: cd dbt/medallion && dbt docs generate --profiles-dir . && dbt docs serve --profiles-dir .
+```
+
+Then open http://localhost:8080 (or the URL dbt prints). You get:
+
+- **Lineage** – DAG of sources → models → exposures.
+- **Meta** – Custom metadata on models (e.g. owner, maturity, PII) defined in `schema.yml` under `meta:`; visible in the docs Details panel.
+- **Exposures** – Downstream consumers (Power BI, Metabase, etc.) defined in `dbt/medallion/models/exposures.yml` with `depends_on` refs to gold models; they appear as nodes at the end of the DAG so you can see impact (e.g. “this model feeds these dashboards”).
+
+See **`docs/DBT_META_AND_EXPOSURES.md`** for how to use meta and exposures and how they’re integrated in this project.
+
 ### Power BI (.pbix) and Metabase for gold-layer testing
 
 Gold models are intended for BI. You can test reports and dashboards locally:
@@ -234,3 +256,9 @@ streamlit run dashboard/dashboard_sites.py
 
 - **DuckDB path**: by default the loader uses `warehouse/local.duckdb`. The dbt profile is also configured to use that file (see `dbt/medallion/profiles.yml`).
 - **Layering**: `ingest/load.py` currently targets `raw` and `bronze` schemas; dbt is intended to build the downstream `silver`/`gold` models.
+
+### Integrations and extensions
+
+- **Config:** Copy `.env.example` to `.env` and set `SNOWFLAKE_*` (and optional paths). Use the same env for Snowflake CLI or MCP so everything shares one config.
+- **Runbook:** A `Makefile` provides shortcuts for `load-bronze`, `dbt-build`, `schema-export`, `schema-validate` (e.g. `make dbt-build`). Override with `DBT_PROJECT=dbt/my_snowflake_project` or `WAREHOUSE_PATH=...`.
+- **Snowflake MCP, CLI, Cortex:** See **`docs/INTEGRATIONS.md`** for how to plug in a Snowflake MCP server, Snowflake CLI (`snow`), and Cortex (Analyst, Code) into this workflow, plus optional ideas (orchestration, tests, data quality, gold export).

@@ -1,0 +1,35 @@
+# Downstream BI and apps that consume gold (and silver) models.
+# They appear in dbt docs lineage. Update depends_on when you add real gold models.
+# See docs/DBT_META_AND_EXPOSURES.md for details.
+
+version: 2
+
+exposures:
+  - name: powerbi_local_report
+    label: "Power BI – local .pbix (gold layer)"
+    type: dashboard
+    maturity: medium
+    description: |
+      Local Power BI report(s) in bi/powerbi/ connected to warehouse/local.duckdb.
+      Used to test gold-layer output before publishing.
+    owner:
+      name: Analytics
+      email: analytics@example.com
+    depends_on:
+      - ref('placeholder')
+    # When you add gold models, e.g. ref('customer_metrics'), add them above and remove ref('placeholder').
+
+  - name: metabase_local
+    label: "Metabase – local (gold layer)"
+    type: dashboard
+    maturity: medium
+    url: "http://localhost:3000"
+    description: |
+      Local Metabase (Docker) connected to warehouse/local.duckdb.
+      Used to test gold-layer questions and dashboards.
+    owner:
+      name: Analytics
+      email: analytics@example.com
+    depends_on:
+      - ref('placeholder')
+    # When you add gold models, add them above and remove ref('placeholder').
