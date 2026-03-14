@@ -100,6 +100,7 @@ class DuckDBLoader:
             schema: Target schema (raw or bronze).
             if_exists: What to do if table exists ('fail', 'replace', 'append').
             file_format: File format ('csv', 'parquet', 'json'). Auto-detected if None.
+            Supports gzip-compressed CSV (e.g. .csv.gz); DuckDB infers compression from extension.
         """
         file_path = Path(file_path)
         
@@ -109,7 +110,11 @@ class DuckDBLoader:
         # Auto-detect file format if not specified
         if file_format is None:
             suffix = file_path.suffix.lower()
+            stem_lower = file_path.stem.lower()
             if suffix == '.csv':
+                file_format = 'csv'
+            elif suffix == '.gz' and stem_lower.endswith('.csv'):
+                # e.g. table.csv.gz — DuckDB read_csv_auto infers gzip from extension
                 file_format = 'csv'
             elif suffix in ['.parquet', '.pqt']:
                 file_format = 'parquet'
@@ -217,7 +222,7 @@ class DuckDBLoader:
         Args:
             directory: Directory containing files to load.
             schema: Target schema (raw or bronze).
-            pattern: Glob pattern to match files (e.g., '*.csv', '*.parquet').
+            pattern: Glob pattern to match files (e.g., '*.csv', '*.csv.gz', '*.parquet').
             if_exists: What to do if table exists ('fail', 'replace', 'append').
         """
         directory = Path(directory)
@@ -236,7 +241,9 @@ class DuckDBLoader:
         for file_path in files:
             # Derive table name from file name (without extension)
             table_name = file_path.stem
-            
+            if table_name.lower().endswith(".csv"):
+                table_name = table_name[:-4]  # e.g. my_table.csv.gz -> my_table
+
             try:
                 self.load_from_file(
                     file_path=file_path,

@@ -20,6 +20,9 @@ Local-first **medallion architecture** (raw → bronze → silver → gold) usin
 - `ingest/load.py`: load files or DataFrames into DuckDB (`raw` / `bronze` schemas)
 - `data/generator/`: synthetic data generators (e.g. `sites.py` exports parquet)
 - `dbt/medallion/`: dbt project (profile already points to `warehouse/local.duckdb`)
+- `scripts/warehouse_schema.py`: export or validate warehouse schema (database architecture model)
+- `docs/warehouse_schema.yml`: committed schema snapshot (after `warehouse_schema export`) for validation
+- `bi/`: Power BI (.pbix) and Metabase – local BI testing against gold layer (see `bi/README.md`)
 - `dashboard/dashboard_sites.py`: Streamlit app to view sites on a map
 - `warehouse/local.duckdb`: local DuckDB database file (created/used by the project)
 
@@ -126,6 +129,98 @@ You can also extract an arbitrary query:
 ```bash
 python ingest/snowflake_extract.py query --sql \"SELECT * FROM YOUR_DB.YOUR_SCHEMA.YOUR_TABLE LIMIT 1000\" --out data/extracted/snowflake/sample.parquet
 ```
+
+### Local dbt dev with Snowflake project and bronze gzip CSV
+
+A typical workflow is: pull the dbt project from Snowflake (e.g. via Snowflake CLI), load a **bronze-layer dataset** (e.g. gzip CSV files) into DuckDB, then run **dbt build** to build and test silver and gold models locally.
+
+1. **Pull the dbt project** (Snowflake CLI preserves directory structure):
+
+```bash
+snow stage copy @YOUR_DB.YOUR_SCHEMA.DBT_STAGE dbt/my_snowflake_project --recursive
+```
+
+Use a separate directory (e.g. `dbt/my_snowflake_project`) so it sits side by side with `dbt/medallion`. Ensure the project’s `profiles.yml` in that directory has a target pointing at `warehouse/local.duckdb` (or your local DuckDB path) for local runs.
+
+2. **Put your raw/bronze data** in a folder as gzip CSV files (e.g. `data/bronze/*.csv.gz`). Table names are taken from the file name (e.g. `customers.csv.gz` → table `customers`).
+
+3. **Load the bronze dataset into DuckDB** (loader supports `.csv.gz`; DuckDB infers compression):
+
+```bash
+python -c "
+from ingest.load import load_data
+load_data('data/bronze', schema='bronze', pattern='*.csv.gz')
+"
+```
+
+Or load a single file:
+
+```bash
+python -c "from ingest.load import load_data; load_data('data/bronze/customers.csv.gz', schema='bronze')"
+```
+
+4. **Run dbt build** (builds silver/gold and runs tests) from the Snowflake project directory:
+
+```bash
+cd dbt/my_snowflake_project
+dbt build --profiles-dir .
+```
+
+Your dbt sources / refs should point at the same schema you loaded into (e.g. `bronze`) and the same table names as the CSV stems.
+
+### Validating with a database architecture model
+
+After building dbt models, you can capture the warehouse schema as a **YAML architecture model** and later validate that the live DB still matches it (e.g. in CI or before releases).
+
+1. **Export** the current schema (run after `dbt build`):
+
+```bash
+python scripts/warehouse_schema.py export
+```
+
+This writes `docs/warehouse_schema.yml` (schemas, tables, columns). Commit this file to version the expected architecture.
+
+2. **Validate** the warehouse against that file:
+
+```bash
+python scripts/warehouse_schema.py validate
+```
+
+If the DB schema has drifted (missing/extra tables or columns), the command exits with an error. Use `--db` and `--out` / `--schema` to point at another DuckDB file or YAML path.
+
+### Power BI (.pbix) and Metabase for gold-layer testing
+
+Gold models are intended for BI. You can test reports and dashboards locally:
+
+- **Power BI Desktop** – Store `.pbix` files in `bi/powerbi/` and connect them to your local DuckDB using the [DuckDB Power Query connector](https://github.com/MotherDuck-Open-Source/duckdb-power-query-connector) (MotherDuck). Use token `localtoken` and Database Location = path to `warehouse/local.duckdb`. See `bi/README.md` for setup.
+
+- **Metabase** – Run Metabase with the [DuckDB driver plugin](https://github.com/MotherDuck-Open-Source/metabase_duckdb_driver) and add your warehouse as a DuckDB database (JDBC URL pointing at `warehouse/local.duckdb`). An example Docker setup is in `bi/` (Dockerfile + docker-compose); see `bi/README.md`.
+
+After each `dbt build`, refresh Power BI or Metabase to test on the latest silver/gold data.
+
+---
+
+### Pulling dbt project files from Snowflake (alternatives)
+
+**Snowflake CLI (recommended when you need directory structure)**  
+[snow stage copy](https://docs.snowflake.com/en/developer-guide/snowflake-cli/install-cli) preserves folder layout:
+
+```bash
+snow stage copy @YOUR_DB.YOUR_SCHEMA.DBT_STAGE dbt/my_snowflake_project --recursive
+```
+
+**Python script (flat download)**  
+If you don’t need subfolders preserved, you can use the project’s script (same Snowflake env vars as the extract script):
+
+```bash
+python ingest/snowflake_dbt_pull.py @YOUR_DB.YOUR_SCHEMA.DBT_STAGE dbt/my_snowflake_project
+```
+
+**Git as source**  
+If the project is deployed from a Git repo, clone or pull that repo into a folder under `dbt/` instead of pulling from a stage.
+
+**Two dbt projects side by side**  
+Run the project you want by `cd`-ing into its directory: `cd dbt/medallion` or `cd dbt/my_snowflake_project`, then `dbt run --profiles-dir .` or `dbt build --profiles-dir .`.
 
 ### Streamlit dashboard (sites map)
 
