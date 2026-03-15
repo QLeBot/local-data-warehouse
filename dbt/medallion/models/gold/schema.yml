@@ -13,12 +13,12 @@ version: 2
 models:
   - name: placeholder
     description: "Placeholder gold model for a valid DAG; replace with real gold models."
-    meta:
-      owner: analytics
-      maturity: low
-      contains_pii: false
     config:
       tags: [gold]
+      meta:
+        owner: analytics
+        maturity: low
+        contains_pii: false
   # Example model structure (uncomment and modify as you add models):
   # - name: customer_metrics
   #   description: "Aggregated customer metrics and KPIs for business reporting"
